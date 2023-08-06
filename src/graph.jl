@@ -52,9 +52,9 @@ struct Neighbors{V, G}
     v::V
 end
 
-vertices(g::Graph) = GraphVertices(g)
-edges(g::Graph) = GraphEdges(g)
-neighbors(g::Graph, v) = Neighbors(g, v)
+GraphInterface.vertices(g::Graph) = GraphVertices(g)
+GraphInterface.edges(g::Graph) = GraphEdges(g)
+GraphInterface.neighbors(g::Graph, v) = Neighbors(g, v)
 
 raw(vertices::GraphVertices) = keys(vertices.g.adj)
 raw(edges::GraphEdges) = edges.g.edges
@@ -84,14 +84,14 @@ Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
 Base.in(e, edges::GraphEdges) = (e in raw(edges))
 
-function add_vertex!(g::Graph{V}, v) where {V}
+function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     if v ∉ vertices(g)
         g.adj[v] = Set{V}()
     end
     g
 end
 
-function add_edge!(g::Graph, u, v)
+function GraphInterface.add_edge!(g::Graph, u, v)
     add_vertex!(g, u)
     add_vertex!(g, v)
     push!(g.adj[u], v)
@@ -100,7 +100,7 @@ function add_edge!(g::Graph, u, v)
     g
 end
 
-function add_edge!(g::Graph, e)
+function GraphInterface.add_edge!(g::Graph, e)
     u, v = e
     add_edge!(g, u, v)
 end

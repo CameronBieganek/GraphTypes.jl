@@ -2,3 +2,6 @@ name = "GraphTypes"
 uuid = "1f83ef90-e075-4d72-8444-c47f57f87aa0"
 authors = ["Cameron Bieganek"]
 version = "0.1.0"
+
+[deps]
+GraphInterface = "6750223b-2671-42c4-badc-3e8559fa8179"
