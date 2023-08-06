@@ -82,7 +82,7 @@ Base.IteratorSize(::Type{<:Neighbors}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
-Base.in(e, edges::GraphEdges) = (e in raw(edges))
+Base.in(e, edges::GraphEdges) = (Edge(e...) in raw(edges))
 
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     if v ∉ vertices(g)
