@@ -8,6 +8,10 @@ using GraphInterface: GraphInterface,
     add_vertices!,
     edges,
     neighbors,
+    rem_edge!,
+    rem_edges!,
+    rem_vertex!,
+    rem_vertices!,
     vertices
 
 export Graph,
@@ -17,6 +21,10 @@ export Graph,
     add_vertices!,
     edges,
     neighbors,
+    rem_edge!,
+    rem_edges!,
+    rem_vertex!,
+    rem_vertices!,
     vertices
 
 

@@ -1,7 +1,5 @@
 
 
-# TODO: Account for self-loops.
-
 # An internal type for storing undirected edges.
 struct Edge{V}
     u::V
@@ -103,4 +101,24 @@ end
 function GraphInterface.add_edge!(g::Graph, e)
     u, v = e
     add_edge!(g, u, v)
+end
+
+function GraphInterface.rem_vertex!(g::Graph, v)
+    for w in neighbors(g, v)
+        rem_edge!(g, v, w)
+    end
+    delete!(g.adj, v)
+    g
+end
+
+function GraphInterface.rem_edge!(g::Graph, u, v)
+    delete!(g.adj[u], v)
+    delete!(g.adj[v], u)
+    delete!(g.edges, Edge(u, v))
+    g
+end
+
+function GraphInterface.rem_edge!(g::Graph, e)
+    u, v = e
+    rem_edge!(g, u, v)
 end
