@@ -10,14 +10,9 @@ function Base.hash(e::Edge, h::UInt)
     hash(:Edge, hash(e.u, h) ⊻ hash(e.v, h))
 end
 
-function Base.isequal(d::Edge, e::Edge)
+function Base.:(==)(d::Edge, e::Edge)
     ( isequal(d.u, e.u) && isequal(d.v, e.v) ) ||
     ( isequal(d.u, e.v) && isequal(d.v, e.u) )
-end
-
-function Base.:(==)(d::Edge, e::Edge)
-    ( d.u == e.u && d.v == e.v ) ||
-    ( d.u == e.v && d.v == e.u )
 end
 
 Base.iterate(e::Edge) = (e.u, 1)
