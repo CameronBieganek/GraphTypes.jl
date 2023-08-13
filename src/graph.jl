@@ -6,8 +6,6 @@ struct Edge{V}
     v::V
 end
 
-Edge(u, v) = Edge(promote(u, v)...)
-
 function Base.hash(e::Edge, h::UInt)
     hash(:Edge, hash(e.u, h) ⊻ hash(e.v, h))
 end
@@ -22,6 +20,18 @@ function Base.:(==)(d::Edge, e::Edge)
     ( d.u == e.v && d.v == e.u )
 end
 
+Base.iterate(e::Edge) = (e.u, 1)
+
+function Base.iterate(e::Edge, state::Int)
+    state == 1 && return (e.v, 2)
+    nothing
+end
+
+Base.length(::Edge) = 2
+Base.eltype(::Type{Edge{V}}) where {V} = V
+Base.IteratorSize(::Type{<:Edge}) = Base.HasLength()
+Base.IteratorEltype(::Type{<:Edge}) = Base.HasEltype()
+
 struct Graph{V}
     adj::Dict{V, Set{V}}
     edges::Set{Edge{V}}
@@ -34,6 +44,8 @@ function Graph{V}() where {V}
 end
 
 Base.eltype(::Type{Graph{V}}) where {V} = V
+
+Edge(::Graph{V}, u, v) where {V} = Edge(V(u), V(v))
 
 struct GraphVertices{V, G <: Graph}
     g::G
@@ -94,7 +106,7 @@ function GraphInterface.add_edge!(g::Graph, u, v)
     add_vertex!(g, v)
     push!(g.adj[u], v)
     push!(g.adj[v], u)
-    push!(g.edges, Edge(u, v))
+    push!(g.edges, Edge(g, u, v))
     g
 end
 
@@ -114,7 +126,7 @@ end
 function GraphInterface.rem_edge!(g::Graph, u, v)
     delete!(g.adj[u], v)
     delete!(g.adj[v], u)
-    delete!(g.edges, Edge(u, v))
+    delete!(g.edges, Edge(g, u, v))
     g
 end
 
