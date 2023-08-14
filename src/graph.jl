@@ -129,3 +129,36 @@ function GraphInterface.rem_edge!(g::Graph, e)
     u, v = e
     rem_edge!(g, u, v)
 end
+
+function Base.show(io::IO, g::Graph)
+    println(io, "Graph:")
+    println(io, "    Vertex type: ", eltype(g))
+    println(io, "    Number of vertices: ", nv(g))
+    print(io, "    Number of edges: ", ne(g))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", e::Edge)
+    print(io::IO, "Edge: {", e.u, ", ", e.v, "}")
+end
+
+function Base.show(io::IO, e::Edge)
+    print(io::IO, "{", e.u, ", ", e.v, "}")
+end
+
+function print_first_two(io::IO, itr_name, itr)
+    _1, rest = Iterators.peel(itr)
+    if isempty(rest)
+        print(io, itr_name, ": {", _1, "}")
+    else
+        _2, rest_rest = Iterators.peel(rest)
+        if isempty(rest_rest)
+            print(io, itr_name, ": {", _1, ", ", _2, "}")
+        else
+            print(io, itr_name, ": {", _1, ", ", _2, ", ...}")
+        end
+    end
+end
+
+Base.show(io::IO, vs::GraphVertices) = print_first_two(io, "Vertices", vs)
+Base.show(io::IO, vs::GraphEdges) = print_first_two(io, "Edges", vs)
+Base.show(io::IO, vs::Neighbors) = print_first_two(io, "Neighbors", vs)

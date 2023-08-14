@@ -7,7 +7,9 @@ using GraphInterface: GraphInterface,
     add_vertex!,
     add_vertices!,
     edges,
+    ne,
     neighbors,
+    nv,
     rem_edge!,
     rem_edges!,
     rem_vertex!,
@@ -20,13 +22,14 @@ export Graph,
     add_vertex!,
     add_vertices!,
     edges,
+    ne,
     neighbors,
+    nv,
     rem_edge!,
     rem_edges!,
     rem_vertex!,
     rem_vertices!,
     vertices
-
 
 include("graph.jl")
 
