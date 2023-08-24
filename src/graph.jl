@@ -27,20 +27,25 @@ Base.eltype(::Type{Edge{V}}) where {V} = V
 Base.IteratorSize(::Type{<:Edge}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:Edge}) = Base.HasEltype()
 
+# This is its own type so that we can use `g.weights[u, v]` and `g.weights[e]`.
+struct GraphWeights{V}
+    lookup::Dict{Edge{V}, Float64}
+end
+
 struct Graph{V}
     adj::Dict{V, Set{V}}
     edges::Set{Edge{V}}
+    weights::GraphWeights{V}
 end
 
 function Graph{V}() where {V}
     adj = Dict{V, Set{V}}()
     edges = Set{Edge{V}}()
-    Graph{V}(adj, edges)
+    weights = GraphWeights(Dict{Edge{V}, Float64}())
+    Graph{V}(adj, edges, weights)
 end
 
 Base.eltype(::Type{Graph{V}}) where {V} = V
-
-Edge(::Graph{V}, u, v) where {V} = Edge(V(u), V(v))
 
 struct GraphVertices{V, G <: Graph}
     g::G
@@ -89,6 +94,24 @@ Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
 Base.in(e, edges::GraphEdges) = (Edge(e...) in raw(edges))
 
+function Base.getindex(weights::GraphWeights{V}, u, v) where {V}
+    weights.lookup[Edge{V}(u, v)]
+end
+
+function Base.getindex(weights::GraphWeights, e)
+    u, v = e
+    weights[u, v]
+end
+
+function Base.setindex!(weights::GraphWeights{V}, w::Real, u, v) where {V}
+    weights.lookup[Edge{V}(u, v)] = w
+end
+
+function Base.setindex!(weights::GraphWeights, w::Real, e)
+    u, v = e
+    weights[u, v] = w
+end
+
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     if v ∉ vertices(g)
         g.adj[v] = Set{V}()
@@ -96,18 +119,14 @@ function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     g
 end
 
-function GraphInterface.add_edge!(g::Graph, u, v)
+function GraphInterface.add_weighted_edge!(g::Graph, u, v, w::Real)
+    g.weights[u, v] = w
     add_vertex!(g, u)
     add_vertex!(g, v)
     push!(g.adj[u], v)
     push!(g.adj[v], u)
-    push!(g.edges, Edge(g, u, v))
+    push!(g.edges, Edge{eltype(g)}(u, v))
     g
-end
-
-function GraphInterface.add_edge!(g::Graph, e)
-    u, v = e
-    add_edge!(g, u, v)
 end
 
 function GraphInterface.rem_vertex!(g::Graph, v)
@@ -121,13 +140,12 @@ end
 function GraphInterface.rem_edge!(g::Graph, u, v)
     delete!(g.adj[u], v)
     delete!(g.adj[v], u)
-    delete!(g.edges, Edge(g, u, v))
-    g
-end
 
-function GraphInterface.rem_edge!(g::Graph, e)
-    u, v = e
-    rem_edge!(g, u, v)
+    e = Edge{eltype(g)}(u, v)
+    delete!(g.edges, e)
+    delete!(g.weights.lookup, e)
+
+    g
 end
 
 function Base.show(io::IO, g::Graph)
@@ -160,5 +178,6 @@ function print_first_two(io::IO, itr_name, itr)
 end
 
 Base.show(io::IO, vs::GraphVertices) = print_first_two(io, "Vertices", vs)
-Base.show(io::IO, vs::GraphEdges) = print_first_two(io, "Edges", vs)
-Base.show(io::IO, vs::Neighbors) = print_first_two(io, "Neighbors", vs)
+Base.show(io::IO, es::GraphEdges) = print_first_two(io, "Edges", es)
+Base.show(io::IO, ns::Neighbors) = print_first_two(io, "Neighbors", ns)
+Base.show(io::IO, ::GraphWeights) = print(io, "GraphWeights")

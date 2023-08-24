@@ -105,6 +105,30 @@
         [Set((1, 2)), Set((1, 4))]
     )
 
+    g = Graph{Int}()
+    add_edge!(g, 1, 2)
+    @test g.weights[1, 2] == g.weights[2, 1] == 1
+    add_weighted_edge!(g, 2, 3, 2.5)
+    add_weighted_edge!(g, 3, 0x04, 42)
+    @test g.weights[2, 3] == g.weights[3, 2] == 2.5
+    @test (
+        g.weights[0x03, 4] ==
+        g.weights[3, 0x04] ==
+        g.weights[3, 4]    ==
+        g.weights[4, 3]    ==
+        42
+    )
+
+    g = Graph{Int}()
+    add_weighted_edges!(g, [
+        (1, 2, 100),
+        (2, 3, 4.2),
+        (3, 4, 0x08)
+    ])
+    @test g.weights[1, 2] == g.weights[2, 1] == 100
+    @test g.weights[2, 3] == g.weights[3, 2] == 4.2
+    @test g.weights[3, 4] == g.weights[4, 3] == 8
+
 end
 
 
@@ -181,5 +205,23 @@ end
         Set.(edges(g)),
         [Set("ab"), Set("cd")]
     )
+
+    g = Graph{Char}()
+    add_edge!(g, "ab")
+    @test g.weights["ab"] == g.weights["ba"] == 1
+    add_weighted_edge!(g, 'b', 'c', 2.5)
+    add_weighted_edge!(g, "cd", 42)
+    @test g.weights['b', 'c'] == g.weights["cb"] == 2.5
+    @test g.weights["cd"] == g.weights["dc"] == 42
+
+    g = Graph{Char}()
+    add_weighted_edges!(g, [
+        ('a', 'b', 100),
+        ('b', 'c', 4.2),
+        ('c', 'd', 0x08)
+    ])
+    @test g.weights['a', 'b'] == g.weights['b', 'a'] == 100
+    @test g.weights["bc"] == g.weights["cb"] == 4.2
+    @test g.weights["cd"] == g.weights["dc"] == 8
 
 end
