@@ -1,9 +1,13 @@
 
 
-# An internal type for storing undirected edges.
-struct Edge{V}
+struct Edge{V} <: AbstractUndirectedEdge
     u::V
     v::V
+end
+
+function Edge(itr)
+    length(itr) == 2 || throw(ArgumentError("Iterator of vertices must have length 2."))
+    Edge(itr...)
 end
 
 function Base.hash(e::Edge, h::UInt)
@@ -32,7 +36,7 @@ struct GraphWeights{V}
     lookup::Dict{Edge{V}, Float64}
 end
 
-struct Graph{V}
+struct Graph{V} <: AbstractGraph
     adj::Dict{V, Set{V}}
     edges::Set{Edge{V}}
     weights::GraphWeights{V}
@@ -45,26 +49,22 @@ function Graph{V}() where {V}
     Graph{V}(adj, edges, weights)
 end
 
-Base.eltype(::Type{Graph{V}}) where {V} = V
-
-struct GraphVertices{V, G <: Graph}
-    g::G
-    GraphVertices(g::Graph) = new{eltype(g), typeof(g)}(g)
+struct GraphVertices{V}
+    g::Graph{V}
 end
 
-struct GraphEdges{V, G <: Graph}
-    g::G
-    GraphEdges(g::Graph) = new{eltype(g), typeof(g)}(g)
+struct GraphEdges{V}
+    g::Graph{V}
 end
 
-struct Neighbors{V, G}
-    g::G
+struct Neighbors{V}
+    g::Graph{V}
     v::V
 end
 
 GraphInterface.vertices(g::Graph) = GraphVertices(g)
 GraphInterface.edges(g::Graph) = GraphEdges(g)
-GraphInterface.neighbors(g::Graph, v) = Neighbors(g, v)
+GraphInterface.neighbors(g::Graph{V}, v) where {V} = Neighbors{V}(g, v)
 
 raw(vertices::GraphVertices) = keys(vertices.g.adj)
 raw(edges::GraphEdges) = edges.g.edges
@@ -73,43 +73,43 @@ raw(n::Neighbors) = n.g.adj[n.v]
 Base.iterate(vertices::GraphVertices) = iterate(raw(vertices))
 Base.iterate(vertices::GraphVertices, state) = iterate(raw(vertices), state)
 Base.length(vertices::GraphVertices) = length(raw(vertices))
-Base.eltype(::Type{<:GraphVertices{V}}) where {V} = V
+Base.eltype(::Type{GraphVertices{V}}) where {V} = V
 Base.IteratorSize(::Type{<:GraphVertices}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:GraphVertices}) = Base.HasEltype()
 
 Base.iterate(edges::GraphEdges) = iterate(raw(edges))
 Base.iterate(edges::GraphEdges, state) = iterate(raw(edges), state)
 Base.length(edges::GraphEdges) = length(raw(edges))
-Base.eltype(::Type{<:GraphEdges{V}}) where {V} = Edge{V}
+Base.eltype(::Type{GraphEdges{V}}) where {V} = Edge{V}
 Base.IteratorSize(::Type{<:GraphEdges}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:GraphEdges}) = Base.HasEltype()
 
 Base.iterate(n::Neighbors) = iterate(raw(n))
 Base.iterate(n::Neighbors, state) = iterate(raw(n), state)
 Base.length(n::Neighbors) = length(raw(n))
-Base.eltype(::Type{<:Neighbors{V}}) where {V} = V
+Base.eltype(::Type{Neighbors{V}}) where {V} = V
 Base.IteratorSize(::Type{<:Neighbors}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
-Base.in(e, edges::GraphEdges) = (Edge(e...) in raw(edges))
+Base.in(e, edges::GraphEdges) = (e in raw(edges))
 
-function Base.getindex(weights::GraphWeights{V}, u, v) where {V}
-    weights.lookup[Edge{V}(u, v)]
+function Base.getindex(weights::GraphWeights{V}, e::Edge{V}) where {V}
+    weights.lookup[e]
 end
 
-function Base.getindex(weights::GraphWeights, e)
-    u, v = e
-    weights[u, v]
+function Base.getindex(weights::GraphWeights{V}, u, v) where {V}
+    e = Edge{V}(u, v)
+    weights[e]
+end
+
+function Base.setindex!(weights::GraphWeights{V}, w::Real, e::Edge{V}) where {V}
+    weights.lookup[e] = w
 end
 
 function Base.setindex!(weights::GraphWeights{V}, w::Real, u, v) where {V}
-    weights.lookup[Edge{V}(u, v)] = w
-end
-
-function Base.setindex!(weights::GraphWeights, w::Real, e)
-    u, v = e
-    weights[u, v] = w
+    e = Edge{V}(u, v)
+    weights[e] = w
 end
 
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
@@ -119,14 +119,27 @@ function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     g
 end
 
-function GraphInterface.add_weighted_edge!(g::Graph, u, v, w::Real)
+function _add_edge!(g, e, u, v, w)
     g.weights[u, v] = w
+
     add_vertex!(g, u)
     add_vertex!(g, v)
+
     push!(g.adj[u], v)
     push!(g.adj[v], u)
-    push!(g.edges, Edge{eltype(g)}(u, v))
+
+    push!(g.edges, e)
     g
+end
+
+function GraphInterface.add_edge!(g::Graph{V}, u, v, w::Real=1.0) where {V}
+    e = Edge{V}(u, v)
+    _add_edge!(g, e, u, v, w)
+end
+
+function GraphInterface.add_edge!(g::Graph{V}, e::Edge{V}, w::Real=1.0) where {V}
+    u, v = e
+    _add_edge!(g, e, u, v, w)
 end
 
 function GraphInterface.rem_vertex!(g::Graph, v)
@@ -137,29 +150,39 @@ function GraphInterface.rem_vertex!(g::Graph, v)
     g
 end
 
-function GraphInterface.rem_edge!(g::Graph, u, v)
+function _rem_edge!(g, e, u, v)
     delete!(g.adj[u], v)
     delete!(g.adj[v], u)
 
-    e = Edge{eltype(g)}(u, v)
     delete!(g.edges, e)
     delete!(g.weights.lookup, e)
 
     g
 end
 
-function Base.show(io::IO, g::Graph)
-    println(io, "Graph:")
-    println(io, "    Vertex type: ", eltype(g))
-    println(io, "    Number of vertices: ", nv(g))
-    print(io, "    Number of edges: ", ne(g))
+function GraphInterface.rem_edge!(g::Graph{V}, u, v) where {V}
+    e = Edge{V}(u, v)
+    _rem_edge!(g, e, u, v)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", e::Edge)
+function GraphInterface.rem_edge!(g::Graph{V}, e::Edge{V}) where {V}
+    u, v = e
+    _rem_edge!(g, e, u, v)
+end
+
+function Base.show(io::IO, g::Graph)
+    println(io, "Graph:")
+    println(io, "    Vertex type: ",        vertex_type(g))
+    println(io, "    Number of vertices: ", nv(g))
+    print(  io, "    Number of edges: ",    ne(g))
+end
+
+
+function Base.show(io::IO, e::Edge)
     print(io::IO, "Edge: {", e.u, ", ", e.v, "}")
 end
 
-function Base.show(io::IO, e::Edge)
+function Base.show(io::IO, ::MIME"text/plain", e::Edge)
     print(io::IO, "{", e.u, ", ", e.v, "}")
 end
 

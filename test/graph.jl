@@ -1,42 +1,62 @@
 
 @testset "Graph interface (Int vertices)" begin
 
+    e1 = Edge(1, 2)
+    e2 = Edge(2, 1)
+    e3 = Edge{Int}(0x01, 0x02)
+    e4 = Edge{Int}(0x02, 0x01)
+    e5 = Edge([1, 2])
+    @test e1 == e2 == e3 == e4 == e5
+    @test hash(e1) == hash(e2) == hash(e3) == hash(e4) == hash(e5)
+
+    @test_throws ArgumentError Edge([1, 2, 3])
+    @test_throws MethodError Edge(1, 2, 3)
+
     g = Graph{Int}()
     add_vertex!(g, 11)
     add_vertex!(g, 12)
     add_vertex!(g, 13)
-    add_edge!(g, (11, 12))
-    add_edge!(g, [12, 13])
-    add_edge!(g, 13 => 11)
+    add_edge!(g, 11, 12)
+    add_edge!(g, 11, 12) # No-op
+    add_edge!(g, 12, 11) # No-op
+    add_edge!(g, Int8(11), 12) # No-op
+    add_edge!(g, Edge(12, 13))
+    add_edge!(g, 13, Int8(11))
 
-    @test eltype(g) == Int
+    @test vertex_type(g) == Int
     @test length(vertices(g)) == 3
     @test issetequal(vertices(g), [11, 12, 13])
 
     @test length(edges(g)) == 3
     @test issetequal(
-        Set.(edges(g)),
-        [Set((11, 12)), Set((12, 13)), Set((13, 11))]
+        edges(g),
+        Edge.([(11, 12), (12, 13), (13, 11)])
     )
 
-    @test issetequal(neighbors(g, 12), [11, 13])
-    @test issetequal(neighbors(g, 11), [12, 13])
+    @test issetequal(neighbors(g, 12),   [11, 13])
+    @test issetequal(neighbors(g, 11),   [12, 13])
+    @test issetequal(neighbors(g, 11.0), [12, 13])
 
     vs = vertices(g)
     @test 11 in vs; @test 12 in vs; @test 13 in vs
     @test 14 ∉ vs; @test 20 ∉ vs
 
     es = edges(g)
-    @test [12, 11] in es
-    @test (12 => 13) in es
-    @test (11, 13) in es
-    @test (11, 14) ∉ es
-    @test (15, 15) ∉ es
+    @test Edge(11, 12) in es
+    @test Edge(12, 11) in es
+    @test Edge{vertex_type(g)}(0x0b, 0x0c) in es
+    @test Edge(11, 13) in es
+    @test Edge(11, 14) ∉ es
+    @test Edge(15, 15) ∉ es
+    @test (11, 12) ∉ es
+    @test [11, 12] ∉ es
+    @test [1, 2, 3] ∉ es
+    @test "hello" ∉ es
 
     g = Graph{Int}()
     add_vertex!(g, 2.0)
     add_vertex!(g, 0x03)
-    @test eltype(g) == Int
+    @test vertex_type(g) == Int
     @test issetequal(vertices(g), [2, 3])
     @test all(==(Int) ∘ typeof, vertices(g))
 
@@ -46,8 +66,8 @@
     @test issetequal(vertices(g), [2, 3, 4, 5])
     @test all(==(Int) ∘ typeof, vertices(g))
     @test issetequal(
-        Set.(edges(g)),
-        [Set((2, 3)), Set((4, 5))]
+        edges(g),
+        Edge.([(2, 3), (4, 5)])
     )
 
     g = Graph{Int}()
@@ -58,32 +78,32 @@
     @test issetequal(vertices(g), [5, 3])
 
     g = Graph{Int}()
-    add_edges!(g, [
+    add_edges!(g, Edge.([
         (1, 2),
         (2, 3),
         (3, 4),
         (4, 1)
-    ])
+    ]))
     rem_vertex!(g, 3)
     @test issetequal(vertices(g), [1, 2, 4])
     @test issetequal(
-        Set.(edges(g)),
-        [Set((1, 2)), Set((4, 1))]
+        edges(g),
+        Edge.([(1, 2), (4, 1)])
     )
 
     g = Graph{Int}()
-    add_edges!(g, [
+    add_edges!(g, Edge.([
         (1, 2),
         (2, 3),
         (3, 4),
         (4, 1)
-    ])
+    ]))
     rem_edge!(g, 2, 3)
     rem_edge!(g, 4, 3)
     @test issetequal(vertices(g), [1, 2, 3, 4])
     @test issetequal(
-        Set.(edges(g)),
-        [Set((1, 2)), Set((1, 4))]
+        edges(g),
+        Edge.([(1, 2), (1, 4)])
     )
 
     g = Graph{Int}()
@@ -92,24 +112,24 @@
     @test issetequal(vertices(g), [1, 4])
 
     g = Graph{Int}()
-    add_edges!(g, [
+    add_edges!(g, Edge.([
         (1, 2),
         (2, 3),
         (3, 4),
         (4, 1)
-    ])
-    rem_edges!(g, [(2, 3), (4, 3)])
+    ]))
+    rem_edges!(g, Edge.([(2, 3), (4, 3)]))
     @test issetequal(vertices(g), [1, 2, 3, 4])
     @test issetequal(
-        Set.(edges(g)),
-        [Set((1, 2)), Set((1, 4))]
+        edges(g),
+        Edge.([(1, 2), (1, 4)])
     )
 
     g = Graph{Int}()
     add_edge!(g, 1, 2)
     @test g.weights[1, 2] == g.weights[2, 1] == 1
-    add_weighted_edge!(g, 2, 3, 2.5)
-    add_weighted_edge!(g, 3, 0x04, 42)
+    add_edge!(g, 2, 3, 2.5)
+    add_edge!(g, 3, 0x04, 42)
     @test g.weights[2, 3] == g.weights[3, 2] == 2.5
     @test (
         g.weights[0x03, 4] ==
@@ -134,22 +154,29 @@ end
 
 @testset "Graph interface (Char vertices)" begin
 
+    e1 = Edge('a', 'b')
+    e2 = Edge('b', 'a')
+    e3 = Edge("ab")
+    @test e1 == e2
+    @test hash(e1) == hash(e2) == hash(e3)
+
     g = Graph{Char}()
     add_vertex!(g, 'a')
     add_vertex!(g, 'b')
     add_vertex!(g, 'c')
-    add_edge!(g, ('a', 'b'))
-    add_edge!(g, "bc")
-    add_edge!(g, ['c', 'a'])
+    add_edge!(g, Edge('a', 'b'))
+    add_edge!(g, Edge("bc"))
+    add_edge!(g, 'c', 'a')
+    add_edge!(g, 'a', 'c') # No-op
 
-    @test eltype(g) == Char
+    @test vertex_type(g) == Char
     @test length(vertices(g)) == 3
     @test issetequal(vertices(g), "abc")
 
     @test length(edges(g)) == 3
     @test issetequal(
-        Set.(edges(g)),
-        [Set("ab"), Set("bc"), Set("ca")]
+        edges(g),
+        Edge.(["ab", "bc", "ca"])
     )
 
     @test issetequal(neighbors(g, 'b'), ['a', 'c'])
@@ -160,11 +187,12 @@ end
     @test 'd' ∉ vs; @test 'e' ∉ vs
 
     es = edges(g)
-    @test ['b', 'a'] in es
-    @test "bc" in es
-    @test ('a', 'c') in es
-    @test ('a', 'd') ∉ es
-    @test "de" ∉ es
+    @test Edge("ab") in es
+    @test Edge('b', 'a') in es
+    @test Edge("bc") in es
+    @test Edge('a', 'c') in es
+    @test Edge('a', 'd') ∉ es
+    @test Edge("de") ∉ es
 
     g = Graph{Char}()
     add_vertices!(g, "abcd")
@@ -174,22 +202,22 @@ end
     @test issetequal(vertices(g), ['a', 'c'])
 
     g = Graph{Char}()
-    add_edges!(g, ["ab", "bc", "cd", "da"])
+    add_edges!(g, Edge.(["ab", "bc", "cd", "da"]))
     rem_vertex!(g, 'c')
     @test issetequal(vertices(g), "abd")
     @test issetequal(
-        Set.(edges(g)),
-        [Set("ab"), Set("ad")]
+        edges(g),
+        Edge.(["ab", "ad"])
     )
 
     g = Graph{Char}()
-    add_edges!(g, ["ab", "bc", "cd", "da"])
+    add_edges!(g, Edge.(["ab", "bc", "cd", "da"]))
     rem_edge!(g, 'b', 'c')
-    rem_edge!(g, "da")
+    rem_edge!(g, Edge("da"))
     @test issetequal(vertices(g), "abcd")
     @test issetequal(
-        Set.(edges(g)),
-        [Set("ab"), Set("cd")]
+        edges(g),
+        Edge.(["ab", "cd"])
     )
 
     g = Graph{Char}()
@@ -198,21 +226,21 @@ end
     @test issetequal(vertices(g), ['a', 'd'])
 
     g = Graph{Char}()
-    add_edges!(g, ["ab", "bc", "cd", "da"])
-    rem_edges!(g, ["bc", "da"])
+    add_edges!(g, Edge.(["ab", "bc", "cd", "da"]))
+    rem_edges!(g, Edge.(["bc", "da"]))
     @test issetequal(vertices(g), "abcd")
     @test issetequal(
-        Set.(edges(g)),
-        [Set("ab"), Set("cd")]
+        edges(g),
+        Edge.(["ab", "cd"])
     )
 
     g = Graph{Char}()
-    add_edge!(g, "ab")
-    @test g.weights["ab"] == g.weights["ba"] == 1
-    add_weighted_edge!(g, 'b', 'c', 2.5)
-    add_weighted_edge!(g, "cd", 42)
-    @test g.weights['b', 'c'] == g.weights["cb"] == 2.5
-    @test g.weights["cd"] == g.weights["dc"] == 42
+    add_edge!(g, Edge("ab"))
+    @test g.weights['a', 'b'] == g.weights['b', 'a'] == 1
+    add_edge!(g, 'b', 'c', 2.5)
+    add_edge!(g, Edge("cd"), 42)
+    @test g.weights['b', 'c'] == g.weights['c', 'b'] == 2.5
+    @test g.weights[Edge("cd")] == g.weights[Edge("dc")] == 42
 
     g = Graph{Char}()
     add_weighted_edges!(g, [
@@ -221,7 +249,7 @@ end
         ('c', 'd', 0x08)
     ])
     @test g.weights['a', 'b'] == g.weights['b', 'a'] == 100
-    @test g.weights["bc"] == g.weights["cb"] == 4.2
-    @test g.weights["cd"] == g.weights["dc"] == 8
+    @test g.weights[Edge("bc")] == g.weights[Edge("cb")] == 4.2
+    @test g.weights['c', 'd'] == g.weights['d', 'c'] == 8
 
 end
