@@ -177,13 +177,12 @@ function Base.show(io::IO, g::Graph)
     print(  io, "    Number of edges: ",    ne(g))
 end
 
-
-function Base.show(io::IO, e::Edge)
-    print(io::IO, "Edge: {", e.u, ", ", e.v, "}")
+function Base.show(io::IO, ::MIME"text/plain", e::Edge)
+    print(io, "Edge: {", e.u, ", ", e.v, "}")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", e::Edge)
-    print(io::IO, "{", e.u, ", ", e.v, "}")
+function Base.show(io::IO, e::Edge)
+    print(io, "{", e.u, ", ", e.v, "}")
 end
 
 function print_first_two(io::IO, itr_name, itr)
