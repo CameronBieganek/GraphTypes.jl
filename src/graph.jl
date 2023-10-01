@@ -112,6 +112,8 @@ function Base.setindex!(weights::GraphWeights{V}, w::Real, u, v) where {V}
     weights[e] = w
 end
 
+Base.empty(::Graph{V}) where {V} = Graph{V}()
+
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     if v ∉ vertices(g)
         g.adj[v] = Set{V}()

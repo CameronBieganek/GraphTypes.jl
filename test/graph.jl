@@ -53,6 +53,11 @@
     @test [1, 2, 3] ∉ es
     @test "hello" ∉ es
 
+    eg = empty(g)
+    @test vertex_type(eg) == Int
+    @test isempty(vertices(eg))
+    @test isempty(edges(eg))
+
     g = Graph{Int}()
     add_vertex!(g, 2.0)
     add_vertex!(g, 0x03)
@@ -193,6 +198,11 @@ end
     @test Edge('a', 'c') in es
     @test Edge('a', 'd') ∉ es
     @test Edge("de") ∉ es
+
+    eg = empty(g)
+    @test vertex_type(eg) == Char
+    @test isempty(vertices(eg))
+    @test isempty(edges(eg))
 
     g = Graph{Char}()
     add_vertices!(g, "abcd")
