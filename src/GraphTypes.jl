@@ -17,8 +17,10 @@ using GraphInterface: GraphInterface,
     rem_edges!,
     rem_vertex!,
     rem_vertices!,
+    set_weight!,
     vertex_type,
-    vertices
+    vertices,
+    weight
 
 export Graph,
     Edge,
@@ -35,8 +37,10 @@ export Graph,
     rem_edges!,
     rem_vertex!,
     rem_vertices!,
+    set_weight!,
     vertex_type,
-    vertices
+    vertices,
+    weight
 
 include("graph.jl")
 

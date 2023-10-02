@@ -31,22 +31,17 @@ Base.eltype(::Type{Edge{V}}) where {V} = V
 Base.IteratorSize(::Type{<:Edge}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:Edge}) = Base.HasEltype()
 
-# This is its own type so that we can use `g.weight[u, v]` and `g.weight[e]`.
-struct GraphWeights{V}
-    lookup::Dict{Edge{V}, Float64}
-end
-
-struct Graph{V} <: AbstractGraph
+struct Graph{V, W <: Number} <: AbstractGraph
     neighbors::Dict{V, Set{V}}
     edges::Set{Edge{V}}
-    weight::GraphWeights{V}
+    weight::Dict{Edge{V}, W}
 end
 
 function Graph{V}() where {V}
     neighbors = Dict{V, Set{V}}()
     edges = Set{Edge{V}}()
-    weight = GraphWeights(Dict{Edge{V}, Float64}())
-    Graph{V}(neighbors, edges, weight)
+    weight = Dict{Edge{V}, Float64}()
+    Graph{V, Float64}(neighbors, edges, weight)
 end
 
 struct GraphVertices{V}
@@ -94,24 +89,6 @@ Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
 Base.in(e, edges::GraphEdges) = (e in raw(edges))
 
-function Base.getindex(weight::GraphWeights{V}, e::Edge{V}) where {V}
-    weight.lookup[e]
-end
-
-function Base.getindex(weight::GraphWeights{V}, u, v) where {V}
-    e = Edge{V}(u, v)
-    weight[e]
-end
-
-function Base.setindex!(weight::GraphWeights{V}, w::Real, e::Edge{V}) where {V}
-    weight.lookup[e] = w
-end
-
-function Base.setindex!(weight::GraphWeights{V}, w::Real, u, v) where {V}
-    e = Edge{V}(u, v)
-    weight[e] = w
-end
-
 Base.empty(::Graph{V}) where {V} = Graph{V}()
 
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
@@ -121,7 +98,7 @@ function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     g
 end
 
-function _add_edge!(g, e, u, v, w)
+function _add_edge_no_weight!(g::Graph, e, u, v)
     # add_vertex! needs to go first so that we get an error right away if
     # `isequal(convert(vertex_type(g), u), u)` is false, and similarly for `v`.
     add_vertex!(g, u)
@@ -131,19 +108,34 @@ function _add_edge!(g, e, u, v, w)
     push!(g.neighbors[v], u)
 
     push!(g.edges, e)
-    g.weight[u, v] = w
 
     g
 end
 
-function GraphInterface.add_edge!(g::Graph{V}, u, v, w::Real=1.0) where {V}
-    e = Edge{V}(u, v)
-    _add_edge!(g, e, u, v, w)
+function _add_edge_with_weight!(g::Graph, e, u, v, w)
+    _add_edge_no_weight!(g, e, u, v)
+    set_weight!(g, e, w)
+    g
 end
 
-function GraphInterface.add_edge!(g::Graph{V}, e::Edge{V}, w::Real=1.0) where {V}
+function GraphInterface.add_edge!(g::Graph{V}, u, v) where {V}
+    e = Edge{V}(u, v)
+    _add_edge_no_weight!(g, e, u, v)
+end
+
+function GraphInterface.add_edge!(g::Graph{V}, u, v, w::Number) where {V}
+    e = Edge{V}(u, v)
+    _add_edge_with_weight!(g, e, u, v, w)
+end
+
+function GraphInterface.add_edge!(g::Graph{V}, e::Edge{V}) where {V}
     u, v = e
-    _add_edge!(g, e, u, v, w)
+    _add_edge_no_weight!(g, e, u, v)
+end
+
+function GraphInterface.add_edge!(g::Graph{V}, e::Edge{V}, w::Number) where {V}
+    u, v = e
+    _add_edge_with_weight!(g, e, u, v, w)
 end
 
 function GraphInterface.rem_vertex!(g::Graph, v)
@@ -159,7 +151,7 @@ function _rem_edge!(g, e, u, v)
     delete!(g.neighbors[v], u)
 
     delete!(g.edges, e)
-    delete!(g.weight.lookup, e)
+    delete!(g.weight, e)
 
     g
 end
@@ -172,6 +164,22 @@ end
 function GraphInterface.rem_edge!(g::Graph{V}, e::Edge{V}) where {V}
     u, v = e
     _rem_edge!(g, e, u, v)
+end
+
+function GraphInterface.weight(g::Graph{V}, u, v) where {V}
+    weight(g, Edge{V}(u, v))
+end
+
+function GraphInterface.weight(g::Graph{V, W}, e::Edge{V}) where {V, W}
+    get(g.weight, e, one(W))
+end
+
+function GraphInterface.set_weight!(g::Graph{V}, u, v, w::Number) where {V}
+    set_weight!(g, Edge{V}(u, v), w)
+end
+
+function GraphInterface.set_weight!(g::Graph{V}, e::Edge{V}, w::Number) where {V}
+    g.weight[e] = w
 end
 
 function Base.show(io::IO, g::Graph)
@@ -207,4 +215,3 @@ end
 Base.show(io::IO, vs::GraphVertices) = print_first_two(io, "Vertices", vs)
 Base.show(io::IO, es::GraphEdges) = print_first_two(io, "Edges", es)
 Base.show(io::IO, ns::Neighbors) = print_first_two(io, "Neighbors", ns)
-Base.show(io::IO, ::GraphWeights) = print(io, "GraphWeights")
