@@ -122,8 +122,8 @@ function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
 end
 
 function _add_edge!(g, e, u, v, w)
-    g.weights[u, v] = w
-
+    # add_vertex! needs to go first so that we get an error right away if
+    # `isequal(convert(vertex_type(g), u), u)` is false, and similarly for `v`.
     add_vertex!(g, u)
     add_vertex!(g, v)
 
@@ -131,6 +131,8 @@ function _add_edge!(g, e, u, v, w)
     push!(g.adj[v], u)
 
     push!(g.edges, e)
+    g.weights[u, v] = w
+
     g
 end
 
