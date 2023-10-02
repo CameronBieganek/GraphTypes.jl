@@ -37,16 +37,16 @@ struct GraphWeights{V}
 end
 
 struct Graph{V} <: AbstractGraph
-    adj::Dict{V, Set{V}}
+    neighbors::Dict{V, Set{V}}
     edges::Set{Edge{V}}
     weight::GraphWeights{V}
 end
 
 function Graph{V}() where {V}
-    adj = Dict{V, Set{V}}()
+    neighbors = Dict{V, Set{V}}()
     edges = Set{Edge{V}}()
     weight = GraphWeights(Dict{Edge{V}, Float64}())
-    Graph{V}(adj, edges, weight)
+    Graph{V}(neighbors, edges, weight)
 end
 
 struct GraphVertices{V}
@@ -66,9 +66,9 @@ GraphInterface.vertices(g::Graph) = GraphVertices(g)
 GraphInterface.edges(g::Graph) = GraphEdges(g)
 GraphInterface.neighbors(g::Graph{V}, v) where {V} = Neighbors{V}(g, v)
 
-raw(vertices::GraphVertices) = keys(vertices.g.adj)
+raw(vertices::GraphVertices) = keys(vertices.g.neighbors)
 raw(edges::GraphEdges) = edges.g.edges
-raw(n::Neighbors) = n.g.adj[n.v]
+raw(n::Neighbors) = n.g.neighbors[n.v]
 
 Base.iterate(vertices::GraphVertices) = iterate(raw(vertices))
 Base.iterate(vertices::GraphVertices, state) = iterate(raw(vertices), state)
@@ -116,7 +116,7 @@ Base.empty(::Graph{V}) where {V} = Graph{V}()
 
 function GraphInterface.add_vertex!(g::Graph{V}, v) where {V}
     if v ∉ vertices(g)
-        g.adj[v] = Set{V}()
+        g.neighbors[v] = Set{V}()
     end
     g
 end
@@ -127,8 +127,8 @@ function _add_edge!(g, e, u, v, w)
     add_vertex!(g, u)
     add_vertex!(g, v)
 
-    push!(g.adj[u], v)
-    push!(g.adj[v], u)
+    push!(g.neighbors[u], v)
+    push!(g.neighbors[v], u)
 
     push!(g.edges, e)
     g.weight[u, v] = w
@@ -150,13 +150,13 @@ function GraphInterface.rem_vertex!(g::Graph, v)
     for w in neighbors(g, v)
         rem_edge!(g, v, w)
     end
-    delete!(g.adj, v)
+    delete!(g.neighbors, v)
     g
 end
 
 function _rem_edge!(g, e, u, v)
-    delete!(g.adj[u], v)
-    delete!(g.adj[v], u)
+    delete!(g.neighbors[u], v)
+    delete!(g.neighbors[v], u)
 
     delete!(g.edges, e)
     delete!(g.weight.lookup, e)
