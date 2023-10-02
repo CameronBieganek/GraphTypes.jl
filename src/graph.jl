@@ -31,7 +31,7 @@ Base.eltype(::Type{Edge{V}}) where {V} = V
 Base.IteratorSize(::Type{<:Edge}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:Edge}) = Base.HasEltype()
 
-# This is its own type so that we can use `g.weights[u, v]` and `g.weights[e]`.
+# This is its own type so that we can use `g.weight[u, v]` and `g.weight[e]`.
 struct GraphWeights{V}
     lookup::Dict{Edge{V}, Float64}
 end
@@ -39,14 +39,14 @@ end
 struct Graph{V} <: AbstractGraph
     adj::Dict{V, Set{V}}
     edges::Set{Edge{V}}
-    weights::GraphWeights{V}
+    weight::GraphWeights{V}
 end
 
 function Graph{V}() where {V}
     adj = Dict{V, Set{V}}()
     edges = Set{Edge{V}}()
-    weights = GraphWeights(Dict{Edge{V}, Float64}())
-    Graph{V}(adj, edges, weights)
+    weight = GraphWeights(Dict{Edge{V}, Float64}())
+    Graph{V}(adj, edges, weight)
 end
 
 struct GraphVertices{V}
@@ -94,22 +94,22 @@ Base.IteratorEltype(::Type{<:Neighbors}) = Base.HasEltype()
 Base.in(v, vertices::GraphVertices) = (v in raw(vertices))
 Base.in(e, edges::GraphEdges) = (e in raw(edges))
 
-function Base.getindex(weights::GraphWeights{V}, e::Edge{V}) where {V}
-    weights.lookup[e]
+function Base.getindex(weight::GraphWeights{V}, e::Edge{V}) where {V}
+    weight.lookup[e]
 end
 
-function Base.getindex(weights::GraphWeights{V}, u, v) where {V}
+function Base.getindex(weight::GraphWeights{V}, u, v) where {V}
     e = Edge{V}(u, v)
-    weights[e]
+    weight[e]
 end
 
-function Base.setindex!(weights::GraphWeights{V}, w::Real, e::Edge{V}) where {V}
-    weights.lookup[e] = w
+function Base.setindex!(weight::GraphWeights{V}, w::Real, e::Edge{V}) where {V}
+    weight.lookup[e] = w
 end
 
-function Base.setindex!(weights::GraphWeights{V}, w::Real, u, v) where {V}
+function Base.setindex!(weight::GraphWeights{V}, w::Real, u, v) where {V}
     e = Edge{V}(u, v)
-    weights[e] = w
+    weight[e] = w
 end
 
 Base.empty(::Graph{V}) where {V} = Graph{V}()
@@ -131,7 +131,7 @@ function _add_edge!(g, e, u, v, w)
     push!(g.adj[v], u)
 
     push!(g.edges, e)
-    g.weights[u, v] = w
+    g.weight[u, v] = w
 
     g
 end
@@ -159,7 +159,7 @@ function _rem_edge!(g, e, u, v)
     delete!(g.adj[v], u)
 
     delete!(g.edges, e)
-    delete!(g.weights.lookup, e)
+    delete!(g.weight.lookup, e)
 
     g
 end

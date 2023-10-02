@@ -132,15 +132,15 @@
 
     g = Graph{Int}()
     add_edge!(g, 1, 2)
-    @test g.weights[1, 2] == g.weights[2, 1] == 1
+    @test g.weight[1, 2] == g.weight[2, 1] == 1
     add_edge!(g, 2, 3, 2.5)
     add_edge!(g, 3, 0x04, 42)
-    @test g.weights[2, 3] == g.weights[3, 2] == 2.5
+    @test g.weight[2, 3] == g.weight[3, 2] == 2.5
     @test (
-        g.weights[0x03, 4] ==
-        g.weights[3, 0x04] ==
-        g.weights[3, 4]    ==
-        g.weights[4, 3]    ==
+        g.weight[0x03, 4] ==
+        g.weight[3, 0x04] ==
+        g.weight[3, 4]    ==
+        g.weight[4, 3]    ==
         42
     )
 
@@ -150,9 +150,9 @@
         (2, 3, 4.2),
         (3, 4, 0x08)
     ])
-    @test g.weights[1, 2] == g.weights[2, 1] == 100
-    @test g.weights[2, 3] == g.weights[3, 2] == 4.2
-    @test g.weights[3, 4] == g.weights[4, 3] == 8
+    @test g.weight[1, 2] == g.weight[2, 1] == 100
+    @test g.weight[2, 3] == g.weight[3, 2] == 4.2
+    @test g.weight[3, 4] == g.weight[4, 3] == 8
 
 end
 
@@ -246,11 +246,11 @@ end
 
     g = Graph{Char}()
     add_edge!(g, Edge("ab"))
-    @test g.weights['a', 'b'] == g.weights['b', 'a'] == 1
+    @test g.weight['a', 'b'] == g.weight['b', 'a'] == 1
     add_edge!(g, 'b', 'c', 2.5)
     add_edge!(g, Edge("cd"), 42)
-    @test g.weights['b', 'c'] == g.weights['c', 'b'] == 2.5
-    @test g.weights[Edge("cd")] == g.weights[Edge("dc")] == 42
+    @test g.weight['b', 'c'] == g.weight['c', 'b'] == 2.5
+    @test g.weight[Edge("cd")] == g.weight[Edge("dc")] == 42
 
     g = Graph{Char}()
     add_weighted_edges!(g, [
@@ -258,8 +258,8 @@ end
         ('b', 'c', 4.2),
         ('c', 'd', 0x08)
     ])
-    @test g.weights['a', 'b'] == g.weights['b', 'a'] == 100
-    @test g.weights[Edge("bc")] == g.weights[Edge("cb")] == 4.2
-    @test g.weights['c', 'd'] == g.weights['d', 'c'] == 8
+    @test g.weight['a', 'b'] == g.weight['b', 'a'] == 100
+    @test g.weight[Edge("bc")] == g.weight[Edge("cb")] == 4.2
+    @test g.weight['c', 'd'] == g.weight['d', 'c'] == 8
 
 end
