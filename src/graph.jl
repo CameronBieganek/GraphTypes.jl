@@ -182,11 +182,12 @@ function Base.show(io::IO, g::Graph)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", e::Edge)
-    print(io, "Edge: {", e.u, ", ", e.v, "}")
+    println(io, "Edge:")
+    print(io, "    ", e.u, " -- ", e.v)
 end
 
 function Base.show(io::IO, e::Edge)
-    print(io, "{", e.u, ", ", e.v, "}")
+    print(io, e.u, " -- ", e.v)
 end
 
 function print_first_two(io::IO, itr_name, itr)
